@@ -1,0 +1,2 @@
+# cinnamon
+Personal finance application.
