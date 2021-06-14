@@ -1,9 +1,5 @@
-type SumArgs = {
-  a: number;
-  b: number;
-};
 
-function sum(a, b): SumArgs {
+function sum(a: number, b: number) {
   return a + b;
 }
 
@@ -11,11 +7,7 @@ test('adds 1 + 2 to equal 3', () => {
   expect(sum(1, 2)).toBe(3);
 });
 
-type AddOneArgs = {
-  num: number;
-};
-
-function addOne(num): AddOneArgs {
+function addOne(num: number) {
   return num + 1;
 }
 
