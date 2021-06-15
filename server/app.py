@@ -35,6 +35,7 @@ class Login(Resource):
 
             user = UserModel(email=email, username=username)
             user.set_password(password)
+            # user.check_password(password)
             db.session.add(user)
             db.session.commit()
             return {}, 201
