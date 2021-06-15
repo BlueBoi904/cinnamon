@@ -22,27 +22,24 @@ login_post_args.add_argument(
 
 
 class Login(Resource):
-    def get(self):
-        users = UserModel.query.all()
-        for user in users:
-            print(user.username)
-        return {
-            "user": users[0].username
-        }
+    def post(self):
+        try:
+            args = login_post_args.parse_args()
+            email = args['email']
+            username = args['username']
+            password = args['password']
 
-    def put(self):
-        args = login_post_args.parse_args()
-        email = args['email']
-        username = args['username']
-        password = args['password']
+            if UserModel.query.filter_by(email=email).first():
+                # userExists = UserModel.query.filter_by(email=email).first()
+                return {"message": "A user with this email is already present."}, 409
 
-        # if UserModel.query.filter_by(email=email):
-        #     return ('Email already Present')
-
-        user = UserModel(email=email, username=username)
-        user.set_password(password)
-        db.session.add(user)
-        db.session.commit()
+            user = UserModel(email=email, username=username)
+            user.set_password(password)
+            db.session.add(user)
+            db.session.commit()
+            return {}, 201
+        except:
+            print('error')
 
 
 api.add_resource(Login, '/login')
