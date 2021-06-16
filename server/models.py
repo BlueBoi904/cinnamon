@@ -1,11 +1,10 @@
 from flask_sqlalchemy import SQLAlchemy
 from passlib.hash import pbkdf2_sha256
-# from flask_login import LoginManager
 
 db = SQLAlchemy()
 
 
-class UserModel(db.Model):
+class User(db.Model):
     __tablename__ = 'users'
 
     id = db.Column(db.Integer, primary_key=True)
@@ -15,7 +14,6 @@ class UserModel(db.Model):
 
     def set_password(self, password):
         pw_hash = pbkdf2_sha256.hash(password)
-        print(pw_hash)
         self.password_hash = pw_hash
 
     def check_password(self, password):
