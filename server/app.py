@@ -14,69 +14,81 @@ db.init_app(app)
 migrate = Migrate(app, db)
 
 
-signup_post_args = reqparse.RequestParser()
-signup_post_args.add_argument(
-    "email", type=str, help="Email is required", required=True)
-signup_post_args.add_argument(
-    "username", type=str, help="Username is required", required=True)
-signup_post_args.add_argument(
-    "password", type=str, help="Password is required", required=True)
-
 login_args = reqparse.RequestParser()
-
 login_args.add_argument(
-    "email", type=str, help="Email is required", required=True)
+    "username", type=str, help="Username is required", required=True)
 login_args.add_argument(
     "password", type=str, help="Password is required", required=True)
+
+
+def customResponseHelper(message, status, data={}):
+    return {
+        "status": status,
+        "message": message,
+        "data": data
+    }
 
 
 class Login(Resource):
     def post(self):
         args = login_args.parse_args()
-        email = args['email']
+        username = args['username']
         password = args['password']
-        user = User.query.filter_by(email=email).first()
+        user = User.query.filter_by(username=username).first()
         if user:
             if user.check_password(password):
                 token = jwt.encode({'user': user.username, 'exp': datetime.datetime.utcnow(
                 ) + datetime.timedelta(minutes=30)}, "hello")
-                print(token)
-                return jsonify({"token": token})
+                return customResponseHelper("Successfully logged in!", 200, {"token": token}), 200
             else:
-                pass
-                return make_response("Invalid password", 401)
+                return customResponseHelper("Invalid password.", 401), 401
         else:
-            pass
-            return make_response("No user with the given email", 404)
+            return customResponseHelper("No user with the given email.", 404), 404
 
 
 class Logout(Resource):
+    def delete(self):
+        return customResponseHelper("Successfully logged out!", 200), 200
+
+
+class Users(Resource):
     def get(self):
-        return make_response("Successfully logged out!", 200)
+        users = User.query.all()
 
+        output = []
 
-class SignUp(Resource):
+        for user in users:
+            user_data = {}
+            user_data['username'] = user.username
+            user_data['password'] = user.password
+            user_data['admin'] = user.admin
+            output.append(user_data)
+
+        return customResponseHelper("Success", 200, output)
+
     def post(self):
-        try:
-            args = signup_post_args.parse_args()
-            email = args['email']
-            username = args['username']
-            password = args['password']
+        args = login_args.parse_args()
+        username = args['username']
+        password = args['password']
 
-            if User.query.filter_by(email=email).first():
-                return {"message": "A user with this email is already present."}, 409
+        if User.query.filter_by(username=username).first():
+            return customResponseHelper("A user with this email is already present.", 409), 409
 
-            user = User(email=email, username=username)
-            user.set_password(password)
-            # Login user
-            db.session.add(user)
-            db.session.commit()
-            return {}, 201
-        except:
-            print('error')
+        user = User(username=username)
+        user.set_password(password)
+        # Login user
+        db.session.add(user)
+        db.session.commit()
+        return {}, 201
 
 
-api.add_resource(SignUp, '/signup')
+class SingleUser(Resource):
+    def get(self, username):
+        return {}
+
+
+api.add_resource(Users, '/users')
+api.add_resource(SingleUser, '/users/<int:username>')
 api.add_resource(Login, '/login')
 api.add_resource(Logout, '/logout')
 
