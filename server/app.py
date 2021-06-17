@@ -83,12 +83,32 @@ class Users(Resource):
 
 
 class SingleUser(Resource):
+    def put(self, username):
+        user = User.query.filter_by(username=username).first()
+
+        if not user:
+            customResponseHelper("No user found.", 404), 404
+
+        user.admin = True
+        db.session.commit()
+        return customResponseHelper("User promoted to admin.", 200)
+
     def get(self, username):
-        return {}
+        user = User.query.filter_by(username=username).first()
+        if not user:
+            customResponseHelper("No user found.", 404), 404
+        user_data = {}
+        user_data['username'] = user.username
+        user_data['password'] = user.password
+        user_data['admin'] = user.admin
+        return customResponseHelper("success", 200, user_data)
+
+    def delete(self, username):
+        pass
 
 
 api.add_resource(Users, '/users')
-api.add_resource(SingleUser, '/users/<int:username>')
+api.add_resource(SingleUser, '/users/<string:username>')
 api.add_resource(Login, '/login')
 api.add_resource(Logout, '/logout')
 
