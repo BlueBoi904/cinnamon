@@ -87,7 +87,7 @@ class SingleUser(Resource):
         user = User.query.filter_by(username=username).first()
 
         if not user:
-            customResponseHelper("No user found.", 404), 404
+            return customResponseHelper("No user found.", 404), 404
 
         user.admin = True
         db.session.commit()
@@ -95,8 +95,9 @@ class SingleUser(Resource):
 
     def get(self, username):
         user = User.query.filter_by(username=username).first()
+        print(user)
         if not user:
-            customResponseHelper("No user found.", 404), 404
+            return customResponseHelper("No user found.", 404), 404
         user_data = {}
         user_data['username'] = user.username
         user_data['password'] = user.password
@@ -104,7 +105,12 @@ class SingleUser(Resource):
         return customResponseHelper("success", 200, user_data)
 
     def delete(self, username):
-        pass
+        user = User.query.filter_by(username=username).first()
+        if not user:
+            return customResponseHelper("No user found.", 404), 404
+        db.session.delete(user)
+        db.session.commit()
+        return customResponseHelper("User deleted successfully", 200), 200
 
 
 api.add_resource(Users, '/users')
