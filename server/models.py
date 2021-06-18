@@ -20,10 +20,17 @@ class User(db.Model):
     def check_password(self, password):
         return pbkdf2_sha256.verify(password, self.password)
 
+    def serialize(self):
+        return {"id": self.id,
+                "username": self.username,
+                "password": self.password,
+                "admin": self.admin,
+                }
 
-def clearTable():
+
+def clearTable(tableName):
     try:
-        db.session.query(User).delete()
+        db.session.query(tableName).delete()
         db.session.commit()
     except:
         db.session.rollback()
