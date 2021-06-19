@@ -69,11 +69,6 @@ class Login(Resource):
             return customResponseHelper("No user with the given email.", 404), 404
 
 
-class Logout(Resource):
-    def delete(self):
-        return customResponseHelper("Successfully logged out!", 200), 200
-
-
 class Users(Resource):
     method_decorators = {'get': [token_required]}
 
@@ -157,7 +152,6 @@ class SingleUser(Resource):
 api.add_resource(Users, '/users')
 api.add_resource(SingleUser, '/users/<string:username>')
 api.add_resource(Login, '/login')
-api.add_resource(Logout, '/logout')
 
 
 if __name__ == '__main__':
