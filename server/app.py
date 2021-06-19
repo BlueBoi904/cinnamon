@@ -106,13 +106,19 @@ class Users(Resource):
         user = User(username=username)
         user.set_password(password)
         # Login user
+        token = jwt.encode({'username': user.username, 'exp': datetime.datetime.utcnow(
+        ) + datetime.timedelta(minutes=30)}, secretKey)
         db.session.add(user)
         db.session.commit()
-        return customResponseHelper("success", 201, user.serialize()), 201
+        return customResponseHelper("success", 201, {"token": token}), 201
 
 
 class SingleUser(Resource):
+    method_decorators = {'get': [token_required],
+                         'delete': [token_required], }
+
     def put(self, username):
+
         user = User.query.filter_by(username=username).first()
 
         if not user:
@@ -120,9 +126,12 @@ class SingleUser(Resource):
 
         user.admin = True
         db.session.commit()
-        return customResponseHelper("User promoted to admin.", 200)
+        return customResponseHelper("User promoted to admin.", 200), 200
 
-    def get(self, username):
+    def get(self, current_user, username):
+        if not current_user.admin:
+            return customResponseHelper("Not authorized to perform this function.", 401), 401
+
         user = User.query.filter_by(username=username).first()
         print(user)
         if not user:
@@ -133,7 +142,10 @@ class SingleUser(Resource):
         user_data['admin'] = user.admin
         return customResponseHelper("success", 200, user_data)
 
-    def delete(self, username):
+    def delete(self, current_user,  username):
+        if not current_user.admin:
+            return customResponseHelper("Not authorized to perform this function.", 401), 401
+
         user = User.query.filter_by(username=username).first()
         if not user:
             return customResponseHelper("No user found.", 404), 404
