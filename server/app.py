@@ -5,6 +5,7 @@ from flask_restful import Resource, Api, reqparse
 import datetime
 import jwt
 from functools import wraps
+from newsapi import NewsApiClient
 
 app = Flask(__name__)
 api = Api(app)
@@ -12,8 +13,8 @@ app.config['SQLALCHEMY_DATABASE_URI'] = "postgresql://postgres:cinnamonuser@192.
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 db.init_app(app)
 migrate = Migrate(app, db)
-
 secretKey = "hello"
+
 
 login_args = reqparse.RequestParser()
 login_args.add_argument(
@@ -149,9 +150,24 @@ class SingleUser(Resource):
         return customResponseHelper("User deleted successfully", 200), 200
 
 
+class News(Resource):
+    def get(self):
+        newsapi = NewsApiClient(api_key='184539ecf77f415eb92acc1dc904d2b4')
+
+        all_articles = newsapi.get_everything(q='bitcoin',
+                                              from_param='2021-05-22',
+                                              to='2021-06-20',
+                                              language='en',
+                                              sort_by='relevancy',
+                                              page=2)
+
+        return all_articles
+
+
 api.add_resource(Users, '/users')
 api.add_resource(SingleUser, '/users/<string:username>')
 api.add_resource(Login, '/login')
+api.add_resource(News, '/news')
 
 
 if __name__ == '__main__':
