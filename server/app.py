@@ -1,11 +1,12 @@
 from flask import Flask, jsonify, request
 from flask_migrate import Migrate
-from models import db, User
+from models import db, User, WatchList
 from flask_restful import Resource, Api, reqparse
 import datetime
 import jwt
 from functools import wraps
 from newsapi import NewsApiClient
+from flask_marshmallow import Marshmallow
 
 app = Flask(__name__)
 api = Api(app)
@@ -13,7 +14,20 @@ app.config['SQLALCHEMY_DATABASE_URI'] = "postgresql://postgres:cinnamonuser@192.
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 db.init_app(app)
 migrate = Migrate(app, db)
+ma = Marshmallow(app)
 secretKey = "hello"
+
+
+class UserSchema(ma.SQLAlchemyAutoSchema):
+    class Meta:
+        model = User
+        include_fk = True
+
+
+class WatchListSchema(ma.SQLAlchemyAutoSchema):
+    class Meta:
+        model = WatchList
+        include_fk = True
 
 
 login_args = reqparse.RequestParser()
@@ -67,7 +81,7 @@ class Login(Resource):
             else:
                 return customResponseHelper("Invalid password.", 401), 401
         else:
-            return customResponseHelper("No user with the given email.", 404), 404
+            return customResponseHelper("No user with the given username.", 404), 404
 
 
 class Users(Resource):
@@ -83,10 +97,20 @@ class Users(Resource):
         output = []
 
         for user in users:
+            watchlist_output = []
             user_data = {}
+            user_data['id'] = user.id
             user_data['username'] = user.username
             user_data['password'] = user.password
             user_data['admin'] = user.admin
+            user_watchlist = WatchList.query.filter_by(
+                user_id=user.id).all()
+            if user_watchlist:
+                for item in user_watchlist:
+                    watchlist_output.append(item.watchlist)
+                user_data['watchlists'] = watchlist_output
+            else:
+                user_data['watchlists'] = []
             output.append(user_data)
 
         return customResponseHelper("Success", 200, output)
@@ -164,10 +188,24 @@ class News(Resource):
         return all_articles
 
 
+class Watchlist(Resource):
+    method_decorators = {'get': [token_required],
+                         'post': [token_required], }
+
+    def post(self, current_user):
+        new_watchlist = WatchList(
+            watchlist=["amd", "nvda"], user_id=current_user.id)
+        current_user.watchlists.append(new_watchlist)
+        db.session.add_all([current_user, new_watchlist])
+        db.session.commit()
+        return customResponseHelper("success", 201), 201
+
+
 api.add_resource(Users, '/users')
 api.add_resource(SingleUser, '/users/<string:username>')
 api.add_resource(Login, '/login')
 api.add_resource(News, '/news')
+api.add_resource(Watchlist, '/watchlist')
 
 
 if __name__ == '__main__':
