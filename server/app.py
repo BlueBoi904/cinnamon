@@ -36,6 +36,11 @@ login_args.add_argument(
 login_args.add_argument(
     "password", type=str, help="Password is required", required=True)
 
+watchlist_args = reqparse.RequestParser()
+watchlist_args.add_argument(
+    "name", type=str, help="Name is required", required=True)
+watchlist_args.add_argument('watchlist', action='append')
+
 
 def customResponseHelper(message, status, data={}):
     return {
@@ -43,6 +48,33 @@ def customResponseHelper(message, status, data={}):
         "message": message,
         "data": data
     }
+
+
+def formatUsers(users):
+    output = []
+    for user in users:
+        watchlist_output = []
+        user_data = {}
+        user_data['id'] = user.id
+        user_data['username'] = user.username
+        user_data['password'] = user.password
+        user_data['admin'] = user.admin
+        user_watchlist = WatchList.query.filter_by(
+            user_id=user.id).all()
+        if user_watchlist:
+            for item in user_watchlist:
+                watchlist_item = {
+                    "id": item.id,
+                    "watchlist": item.watchlist,
+                    "name": item.name,
+                    "user_id": item.user_id
+                }
+                watchlist_output.append(watchlist_item)
+            user_data['watchlists'] = watchlist_output
+        else:
+            user_data['watchlists'] = []
+        output.append(user_data)
+    return output
 
 
 def token_required(f):
@@ -94,24 +126,7 @@ class Users(Resource):
 
         users = User.query.all()
 
-        output = []
-
-        for user in users:
-            watchlist_output = []
-            user_data = {}
-            user_data['id'] = user.id
-            user_data['username'] = user.username
-            user_data['password'] = user.password
-            user_data['admin'] = user.admin
-            user_watchlist = WatchList.query.filter_by(
-                user_id=user.id).all()
-            if user_watchlist:
-                for item in user_watchlist:
-                    watchlist_output.append(item.watchlist)
-                user_data['watchlists'] = watchlist_output
-            else:
-                user_data['watchlists'] = []
-            output.append(user_data)
+        output = formatUsers(users)
 
         return customResponseHelper("Success", 200, output)
 
@@ -153,13 +168,11 @@ class SingleUser(Resource):
             return customResponseHelper("Not authorized to perform this function.", 401), 401
 
         user = User.query.filter_by(username=username).first()
-        print(user)
+
         if not user:
             return customResponseHelper("No user found.", 404), 404
-        user_data = {}
-        user_data['username'] = user.username
-        user_data['password'] = user.password
-        user_data['admin'] = user.admin
+
+        user_data = formatUsers([user])
         return customResponseHelper("success", 200, user_data)
 
     def delete(self, current_user,  username):
@@ -193,8 +206,11 @@ class Watchlist(Resource):
                          'post': [token_required], }
 
     def post(self, current_user):
+        args = watchlist_args.parse_args()
+        name = args['name']
+        watchlist = args['watchlist']
         new_watchlist = WatchList(
-            watchlist=["amd", "nvda"], user_id=current_user.id)
+            watchlist=watchlist, user_id=current_user.id, name=name)
         current_user.watchlists.append(new_watchlist)
         db.session.add_all([current_user, new_watchlist])
         db.session.commit()

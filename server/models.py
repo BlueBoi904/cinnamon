@@ -31,12 +31,14 @@ class WatchList(db.Model):
 
     id = db.Column(db.Integer, primary_key=True)
     watchlist = db.Column(db.ARRAY(db.String), nullable=False)
+    name = db.Column(db.String(15), nullable=False)
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'),
                         nullable=False)
 
-    def __init__(self, watchlist, user_id):
+    def __init__(self, watchlist, user_id, name):
         self.watchlist = watchlist
         self.user_id = user_id
+        self.name = name
 
 
 def clearTable(tableName):
