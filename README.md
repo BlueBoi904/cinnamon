@@ -1,2 +1,3 @@
 # cinnamon
-Personal finance application.
+
+Personal finance api.
