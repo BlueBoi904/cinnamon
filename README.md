@@ -1,3 +1,3 @@
 # cinnamon
 
-Personal finance api.
+Custom finance RESTful API.
